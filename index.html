@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Facturas</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Generador de Facturas</h1>
+        <form id="invoiceForm">
+            <div class="form-section">
+                <h2>Información de la Empresa Emisora</h2>
+                <div class="form-group">
+                    <label for="issuerCompanyName">Nombre de la Empresa:</label>
+                    <input type="text" id="issuerCompanyName" required>
+                </div>
+                <div class="form-group">
+                    <label for="issuerCompanyAddress">Dirección:</label>
+                    <input type="text" id="issuerCompanyAddress">
+                </div>
+                <div class="form-group">
+                    <label for="issuerCompanyPhone">Teléfono:</label>
+                    <input type="text" id="issuerCompanyPhone">
+                </div>
+                <div class="form-group">
+                    <label for="issuerCompanyEmail">Email:</label>
+                    <input type="email" id="issuerCompanyEmail">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Información de la Factura</h2>
+                <div class="form-group">
+                    <label for="companyName">Nombre de la Empresa Cliente:</label>
+                    <input type="text" id="companyName" required>
+                </div>
+                <div class="form-group">
+                    <label for="issuerName">Nombre del Emisor:</label>
+                    <input type="text" id="issuerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Descripción:</label>
+                    <input type="text" id="description" required>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Cantidad:</label>
+                    <input type="number" id="quantity" required>
+                </div>
+                <div class="form-group">
+                    <label for="unitPrice">Precio Unitario:</label>
+                    <input type="number" id="unitPrice" step="0.01" required>
+                </div>
+            </div>
+
+            <button type="button" onclick="generateInvoice()">Generar Factura</button>
+        </form>
+
+        <div id="invoiceContainer" class="invoice-container" style="display:none;">
+            <h2>Factura Generada</h2>
+            <div class="invoice-section">
+                <h3>Empresa Emisora</h3>
+                <p id="invoiceIssuerCompanyName"></p>
+                <p id="invoiceIssuerCompanyAddress"></p>
+                <p id="invoiceIssuerCompanyPhone"></p>
+                <p id="invoiceIssuerCompanyEmail"></p>
+            </div>
+            <div class="invoice-section">
+                <h3>Factura</h3>
+                <p id="invoiceCompany"></p>
+                <p id="invoiceIssuer"></p>
+                <p id="invoiceDescription"></p>
+                <p id="invoiceQuantity"></p>
+                <p id="invoiceUnitPrice"></p>
+                <p id="invoiceTotal"></p>
+            </div>
+            <button onclick="printInvoice()">Imprimir Factura</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
