@@ -3,81 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de Facturas</title>
+    <title>Creador de Facturas</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Generador de Facturas</h1>
-        <form id="invoiceForm">
-            <div class="form-section">
-                <h2>Información de la Empresa Emisora</h2>
-                <div class="form-group">
-                    <label for="issuerCompanyName">Nombre de la Empresa:</label>
-                    <input type="text" id="issuerCompanyName" required>
-                </div>
-                <div class="form-group">
-                    <label for="issuerCompanyAddress">Dirección:</label>
-                    <input type="text" id="issuerCompanyAddress">
-                </div>
-                <div class="form-group">
-                    <label for="issuerCompanyPhone">Teléfono:</label>
-                    <input type="text" id="issuerCompanyPhone">
-                </div>
-                <div class="form-group">
-                    <label for="issuerCompanyEmail">Email:</label>
-                    <input type="email" id="issuerCompanyEmail">
-                </div>
-            </div>
 
-            <div class="form-section">
-                <h2>Información de la Factura</h2>
-                <div class="form-group">
-                    <label for="companyName">Nombre de la Empresa Cliente:</label>
-                    <input type="text" id="companyName" required>
-                </div>
-                <div class="form-group">
-                    <label for="issuerName">Nombre del Emisor:</label>
-                    <input type="text" id="issuerName" required>
-                </div>
-                <div class="form-group">
-                    <label for="description">Descripción:</label>
-                    <input type="text" id="description" required>
-                </div>
-                <div class="form-group">
-                    <label for="quantity">Cantidad:</label>
-                    <input type="number" id="quantity" required>
-                </div>
-                <div class="form-group">
-                    <label for="unitPrice">Precio Unitario:</label>
-                    <input type="number" id="unitPrice" step="0.01" required>
-                </div>
-            </div>
-
-            <button type="button" onclick="generateInvoice()">Generar Factura</button>
-        </form>
-
-        <div id="invoiceContainer" class="invoice-container" style="display:none;">
-            <h2>Factura Generada</h2>
-            <div class="invoice-section">
-                <h3>Empresa Emisora</h3>
-                <p id="invoiceIssuerCompanyName"></p>
-                <p id="invoiceIssuerCompanyAddress"></p>
-                <p id="invoiceIssuerCompanyPhone"></p>
-                <p id="invoiceIssuerCompanyEmail"></p>
-            </div>
-            <div class="invoice-section">
-                <h3>Factura</h3>
-                <p id="invoiceCompany"></p>
-                <p id="invoiceIssuer"></p>
-                <p id="invoiceDescription"></p>
-                <p id="invoiceQuantity"></p>
-                <p id="invoiceUnitPrice"></p>
-                <p id="invoiceTotal"></p>
-            </div>
-            <button onclick="printInvoice()">Imprimir Factura</button>
+<!-- ═══════════ CABECERA ═══════════ -->
+<header class="app-header">
+    <div class="header-inner">
+        <div class="brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span>Creador de Facturas</span>
         </div>
+        <nav class="tab-nav" role="tablist" aria-label="Secciones principales">
+            <button class="tab-btn active" data-tab="form"
+                    role="tab" aria-selected="true" aria-controls="tab-form" id="btn-tab-form">
+                <span class="tab-icon" aria-hidden="true">&#x1F4CB;</span>
+                <span class="tab-label">Formulario</span>
+            </button>
+            <button class="tab-btn" data-tab="preview"
+                    role="tab" aria-selected="false" aria-controls="tab-preview" id="btn-tab-preview">
+                <span class="tab-icon" aria-hidden="true">&#x1F441;</span>
+                <span class="tab-label">Vista Previa</span>
+            </button>
+            <button class="tab-btn" data-tab="history"
+                    role="tab" aria-selected="false" aria-controls="tab-history" id="btn-tab-history">
+                <span class="tab-icon" aria-hidden="true">&#x1F4C2;</span>
+                <span class="tab-label">Historial</span>
+            </button>
+            <button class="tab-btn" data-tab="settings"
+                    role="tab" aria-selected="false" aria-controls="tab-settings" id="btn-tab-settings">
+                <span class="tab-icon" aria-hidden="true">&#x2699;&#xFE0F;</span>
+                <span class="tab-label">Config.</span>
+            </button>
+        </nav>
     </div>
-    <script src="script.js"></script>
+</header>
+
+<main class="app-main">
+
+    <!-- ═══════════ TAB: FORMULARIO ═══════════ -->
+    <div id="tab-form" class="tab-content active" role="tabpanel" aria-labelledby="btn-tab-form">
+
+        <div class="form-toolbar no-print">
+            <button type="button" class="btn btn-outline" id="btnNew">
+                <span aria-hidden="true">&#xFF0B;</span> Nueva
+            </button>
+            <button type="button" class="btn btn-secondary" id="btnSave">
+                <span aria-hidden="true">&#x1F4BE;</span> Guardar
+            </button>
+            <button type="button" class="btn btn-primary" id="btnPreview">
+                <span aria-hidden="true">&#x1F441;</span> Vista Previa
+            </button>
+            <button type="button" class="btn btn-success" id="btnPrint">
+                <span aria-hidden="true">&#x1F5A8;</span> Imprimir / PDF
+            </button>
+        </div>
+
+        <form id="invoiceForm" novalidate>
+
+            <!-- ── Emisor & Cliente ── -->
+            <div class="two-col-grid">
+
+                <!-- Emisor -->
+                <section class="card" aria-labelledby="emisor-title">
+                    <div class="card-head">
+                        <h2 id="emisor-title">Datos del Emisor</h2>
+                        <button type="button" class="btn btn-link btn-sm" id="btnApplyDefaults">
+                            Usar predeterminados
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issuerName">
+                            Nombre / Empresa
+                            <span class="required" aria-label="requerido">*</span>
+                        </label>
+                        <input type="text" id="issuerName" autocomplete="organization"
+                               aria-required="true" placeholder="Mi Empresa S.A.">
+                        <span class="field-error" id="error-issuerName" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issuerNif">NIF / RFC / ID Fiscal</label>
+                        <input type="text" id="issuerNif" autocomplete="off"
+                               placeholder="RFC123456789">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="issuerAddress">Direcci&oacute;n</label>
+                        <textarea id="issuerAddress" rows="2" autocomplete="street-address"
+                                  placeholder="Calle, n&uacute;mero, ciudad, estado, C.P."></textarea>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="issuerEmail">Correo electr&oacute;nico</label>
+                            <input type="email" id="issuerEmail" autocomplete="email"
+                                   placeholder="empresa@ejemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="issuerPhone">Tel&eacute;fono</label>
+                            <input type="tel" id="issuerPhone" autocomplete="tel"
+                                   placeholder="+52 55 1234 5678">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="logoInput">Logo (opcional)</label>
+                        <div class="logo-upload-area">
+                            <input type="file" id="logoInput" accept="image/*"
+                                   aria-label="Subir logo de la empresa">
+                            <p class="file-hint">PNG, JPG o SVG. M&aacute;x. 2 MB.</p>
+                        </div>
+                        <div id="logoPreviewContainer" class="logo-preview-wrap" style="display:none;">
+                            <img id="logoPreview" alt="Vista previa del logo" class="logo-preview-img">
+                            <button type="button" class="btn btn-danger btn-sm" id="btnRemoveLogo">
+                                Quitar logo
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cliente -->
+                <section class="card" aria-labelledby="cliente-title">
+                    <h2 id="cliente-title">Datos del Cliente</h2>
+
+                    <div class="form-group">
+                        <label for="clientName">
+                            Nombre / Empresa
+                            <span class="required" aria-label="requerido">*</span>
+                        </label>
+                        <input type="text" id="clientName" autocomplete="off"
+                               aria-required="true" placeholder="Cliente S.A.">
+                        <span class="field-error" id="error-clientName" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientNif">NIF / RFC / ID Fiscal</label>
+                        <input type="text" id="clientNif" autocomplete="off"
+                               placeholder="RFC987654321">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="clientAddress">Direcci&oacute;n</label>
+                        <textarea id="clientAddress" rows="2" autocomplete="off"
+                                  placeholder="Calle, n&uacute;mero, ciudad, estado, C.P."></textarea>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label for="clientEmail">Correo electr&oacute;nico</label>
+                            <input type="email" id="clientEmail" autocomplete="off"
+                                   placeholder="cliente@ejemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="clientPhone">Tel&eacute;fono</label>
+                            <input type="tel" id="clientPhone" autocomplete="off"
+                                   placeholder="+52 55 9876 5432">
+                        </div>
+                    </div>
+                </section>
+
+            </div><!-- /.two-col-grid -->
+
+            <!-- ── Metadatos de factura ── -->
+            <section class="card" aria-labelledby="meta-title">
+                <h2 id="meta-title">Datos de la Factura</h2>
+                <div class="four-col-grid">
+                    <div class="form-group">
+                        <label for="invoiceNumber">
+                            N.&ordm; de Factura
+                            <span class="required" aria-label="requerido">*</span>
+                        </label>
+                        <input type="text" id="invoiceNumber" aria-required="true"
+                               placeholder="FAC-2025-0001">
+                        <span class="field-error" id="error-invoiceNumber" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueDate">
+                            Fecha de Emisi&oacute;n
+                            <span class="required" aria-label="requerido">*</span>
+                        </label>
+                        <input type="date" id="issueDate" aria-required="true">
+                        <span class="field-error" id="error-issueDate" role="alert"></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">Fecha de Vencimiento</label>
+                        <input type="date" id="dueDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="invoiceCurrency">Moneda</label>
+                        <select id="invoiceCurrency">
+                            <option value="MXN">MXN &ndash; Peso mexicano</option>
+                            <option value="USD">USD &ndash; D&oacute;lar</option>
+                            <option value="EUR">EUR &ndash; Euro</option>
+                            <option value="COP">COP &ndash; Peso colombiano</option>
+                            <option value="ARS">ARS &ndash; Peso argentino</option>
+                            <option value="CLP">CLP &ndash; Peso chileno</option>
+                            <option value="PEN">PEN &ndash; Sol peruano</option>
+                            <option value="GTQ">GTQ &ndash; Quetzal guatemalteco</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="invoiceNotes">Notas / Condiciones de pago</label>
+                    <textarea id="invoiceNotes" rows="3"
+                              placeholder="Condiciones de pago, m&eacute;todo de pago, observaciones&hellip;"></textarea>
+                </div>
+            </section>
+
+            <!-- ── Conceptos / Renglones ── -->
+            <section class="card" aria-labelledby="items-title">
+                <div class="card-head">
+                    <h2 id="items-title">Conceptos</h2>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnAddItem">
+                        &#xFF0B; Agregar concepto
+                    </button>
+                </div>
+                <span class="field-error block-error" id="itemsError" role="alert"></span>
+
+                <div class="table-responsive">
+                    <table class="items-table" aria-label="Tabla de conceptos de la factura">
+                        <thead>
+                            <tr>
+                                <th scope="col">Descripci&oacute;n</th>
+                                <th scope="col" class="col-num">Cantidad</th>
+                                <th scope="col" class="col-num">Precio unit.</th>
+                                <th scope="col" class="col-num">IVA&nbsp;%</th>
+                                <th scope="col" class="col-num">Desc.&nbsp;%</th>
+                                <th scope="col" class="col-num col-subtotal">Subtotal</th>
+                                <th scope="col" class="col-action">
+                                    <span class="sr-only">Acciones</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            <!-- Renderizado por JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="totals-section">
+                    <div class="totals-table">
+                        <div class="totals-row">
+                            <span class="totals-label">Subtotal</span>
+                            <span class="totals-value" id="totalSubtotal">$0.00</span>
+                        </div>
+                        <div class="totals-row">
+                            <span class="totals-label">Descuentos</span>
+                            <span class="totals-value totals-discount" id="totalDiscount">$0.00</span>
+                        </div>
+                        <div class="totals-row">
+                            <span class="totals-label">Impuestos</span>
+                            <span class="totals-value" id="totalTax">$0.00</span>
+                        </div>
+                        <div class="totals-row totals-final-row">
+                            <span class="totals-label">TOTAL</span>
+                            <span class="totals-value" id="totalFinal">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </form>
+    </div><!-- /#tab-form -->
+
+    <!-- ═══════════ TAB: VISTA PREVIA ═══════════ -->
+    <div id="tab-preview" class="tab-content" role="tabpanel"
+         aria-labelledby="btn-tab-preview" aria-hidden="true">
+        <div class="preview-toolbar no-print">
+            <button type="button" class="btn btn-outline" id="btnBackToForm">
+                &larr; Volver al formulario
+            </button>
+            <button type="button" class="btn btn-success" id="btnPrintPreview">
+                &#x1F5A8; Imprimir / Exportar PDF
+            </button>
+        </div>
+        <div id="previewContent" aria-live="polite"></div>
+    </div>
+
+    <!-- ═══════════ TAB: HISTORIAL ═══════════ -->
+    <div id="tab-history" class="tab-content" role="tabpanel"
+         aria-labelledby="btn-tab-history" aria-hidden="true">
+        <div class="section-header">
+            <h2>Historial de Facturas</h2>
+            <p class="section-subtitle">Facturas guardadas en este navegador (localStorage).</p>
+        </div>
+        <div id="historyList" aria-live="polite"></div>
+    </div>
+
+    <!-- ═══════════ TAB: CONFIGURACI&Oacute;N ═══════════ -->
+    <div id="tab-settings" class="tab-content" role="tabpanel"
+         aria-labelledby="btn-tab-settings" aria-hidden="true">
+        <div class="section-header">
+            <h2>Configuraci&oacute;n</h2>
+            <p class="section-subtitle">Valores predeterminados para nuevas facturas.</p>
+        </div>
+
+        <div class="two-col-grid">
+            <section class="card" aria-labelledby="settings-invoice-title">
+                <h3 id="settings-invoice-title">Facturaci&oacute;n</h3>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="settingsIva">IVA predeterminado (%)</label>
+                        <input type="number" id="settingsIva" min="0" max="100" step="0.1"
+                               placeholder="16">
+                    </div>
+                    <div class="form-group">
+                        <label for="settingsCurrency">Moneda predeterminada</label>
+                        <input type="text" id="settingsCurrency" placeholder="MXN" maxlength="5">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="settingsCurrencySymbol">S&iacute;mbolo de moneda</label>
+                    <input type="text" id="settingsCurrencySymbol" placeholder="$" maxlength="5">
+                </div>
+            </section>
+
+            <section class="card" aria-labelledby="settings-company-title">
+                <h3 id="settings-company-title">Empresa predeterminada</h3>
+                <div class="form-group">
+                    <label for="settingsCompanyName">Nombre / Empresa</label>
+                    <input type="text" id="settingsCompanyName" autocomplete="organization">
+                </div>
+                <div class="form-group">
+                    <label for="settingsCompanyNif">NIF / RFC</label>
+                    <input type="text" id="settingsCompanyNif">
+                </div>
+                <div class="form-group">
+                    <label for="settingsCompanyAddress">Direcci&oacute;n</label>
+                    <textarea id="settingsCompanyAddress" rows="2"></textarea>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="settingsCompanyEmail">Correo</label>
+                        <input type="email" id="settingsCompanyEmail">
+                    </div>
+                    <div class="form-group">
+                        <label for="settingsCompanyPhone">Tel&eacute;fono</label>
+                        <input type="tel" id="settingsCompanyPhone">
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div class="settings-actions">
+            <button type="button" class="btn btn-primary" id="btnSaveSettings">
+                &#x1F4BE; Guardar configuraci&oacute;n
+            </button>
+        </div>
+    </div><!-- /#tab-settings -->
+
+</main>
+
+<!-- Toast de notificaci&oacute;n -->
+<div id="notification" class="notification" role="status"
+     aria-live="polite" aria-atomic="true"></div>
+
+<script src="script.js"></script>
 </body>
 </html>
