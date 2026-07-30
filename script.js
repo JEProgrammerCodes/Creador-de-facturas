@@ -230,11 +230,21 @@ function calcTotals() {
   }, { base: 0, discAmt: 0, taxAmt: 0, total: 0 });
 }
 
-/** Format a number as currency with thousands separator */
+/** Format a number as currency with thousands separator (plain text — safe for textContent) */
 function fmtCurrency(n) {
   var s   = getSettings();
   var num = isNaN(n) ? 0 : parseFloat(n);
   return s.currencySymbol + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+/**
+ * Format currency for use inside an HTML string (currency symbol is HTML-escaped).
+ * Use this version whenever the result will be concatenated into an innerHTML assignment.
+ */
+function fmtCurrencyHtml(n) {
+  var s   = getSettings();
+  var num = isNaN(n) ? 0 : parseFloat(n);
+  return escHtml(s.currencySymbol) + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /** Update the totals display in the form */
@@ -243,7 +253,12 @@ function recalcTotals() {
   $('totalSubtotal').textContent = fmtCurrency(t.base);
   $('totalDiscount').textContent = fmtCurrency(t.discAmt);
   $('totalTax').textContent      = fmtCurrency(t.taxAmt);
-  $('totalFinal').innerHTML      = '<strong>' + fmtCurrency(t.total) + '</strong>';
+  // Use DOM manipulation to avoid injecting unescaped currency symbol via innerHTML
+  var strong = document.createElement('strong');
+  strong.textContent = fmtCurrency(t.total);
+  var finalEl = $('totalFinal');
+  finalEl.textContent = '';
+  finalEl.appendChild(strong);
 }
 
 // ── Render items table ────────────────────────────────────────
@@ -299,7 +314,7 @@ function renderItems() {
                 ' oninput="updateItemField(' + iid + ',\'disc\',this.value)">' +
         '</td>' +
         '<td class="col-num subtotal-cell" id="subtotal-' + iid + '">' +
-          fmtCurrency(c.total) +
+          fmtCurrencyHtml(c.total) +
         '</td>' +
         '<td class="col-action">' +
           '<button type="button" class="btn-icon btn-danger-icon"' +
@@ -419,7 +434,7 @@ function generatePreview() {
   if (!validateForm()) { showTab('form'); return; }
 
   var d   = collectFormData();
-  var sym = d.currencySymbol;
+  var sym = escHtml(d.currencySymbol);
 
   function f(n) {
     var num = isNaN(n) ? 0 : parseFloat(n);
@@ -532,7 +547,7 @@ function printInvoice() {
   if (!validateForm()) { showTab('form'); return; }
   // Make sure preview is up-to-date before printing
   var d   = collectFormData();
-  var sym = d.currencySymbol;
+  var sym = escHtml(d.currencySymbol);
 
   function f(n) {
     var num = isNaN(n) ? 0 : parseFloat(n);
