@@ -53,6 +53,92 @@ function futureDate(days) {
   return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
 }
 
+const FALLBACK_CURRENCY_CODES = [
+  'AED', 'AFN', 'ALL', 'AMD', 'ANG', 'AOA', 'ARS', 'AUD', 'AWG', 'AZN', 'BAM', 'BBD',
+  'BDT', 'BGN', 'BHD', 'BIF', 'BMD', 'BND', 'BOB', 'BRL', 'BSD', 'BTN', 'BWP', 'BYN',
+  'BZD', 'CAD', 'CDF', 'CHF', 'CLP', 'CNY', 'COP', 'CRC', 'CUP', 'CVE', 'CZK', 'DJF',
+  'DKK', 'DOP', 'DZD', 'EGP', 'ERN', 'ETB', 'EUR', 'FJD', 'FKP', 'GBP', 'GEL', 'GHS',
+  'GIP', 'GMD', 'GNF', 'GTQ', 'GYD', 'HKD', 'HNL', 'HTG', 'HUF', 'IDR', 'ILS', 'INR',
+  'IQD', 'IRR', 'ISK', 'JMD', 'JOD', 'JPY', 'KES', 'KGS', 'KHR', 'KMF', 'KPW', 'KRW',
+  'KWD', 'KYD', 'KZT', 'LAK', 'LBP', 'LKR', 'LRD', 'LSL', 'LYD', 'MAD', 'MDL', 'MGA',
+  'MKD', 'MMK', 'MNT', 'MOP', 'MRU', 'MUR', 'MVR', 'MWK', 'MXN', 'MYR', 'MZN', 'NAD',
+  'NGN', 'NIO', 'NOK', 'NPR', 'NZD', 'OMR', 'PAB', 'PEN', 'PGK', 'PHP', 'PKR', 'PLN',
+  'PYG', 'QAR', 'RON', 'RSD', 'RUB', 'RWF', 'SAR', 'SBD', 'SCR', 'SDG', 'SEK', 'SGD',
+  'SHP', 'SLE', 'SOS', 'SRD', 'SSP', 'STN', 'SYP', 'SZL', 'THB', 'TJS', 'TMT', 'TND',
+  'TOP', 'TRY', 'TTD', 'TWD', 'TZS', 'UAH', 'UGX', 'USD', 'UYU', 'UZS', 'VES', 'VND',
+  'VUV', 'WST', 'XAF', 'XCD', 'XOF', 'XPF', 'YER', 'ZAR', 'ZMW', 'ZWL'
+];
+
+function getCurrencySymbol(code) {
+  try {
+    var parts = new Intl.NumberFormat('es', {
+      style: 'currency',
+      currency: code,
+      currencyDisplay: 'narrowSymbol'
+    }).formatToParts(0);
+    var currencyPart = parts.find(function (p) { return p.type === 'currency'; });
+    return currencyPart && currencyPart.value ? currencyPart.value : code;
+  } catch (e) {
+    return code;
+  }
+}
+
+function getCurrencyOptions() {
+  var codes = FALLBACK_CURRENCY_CODES.slice();
+  if (typeof Intl !== 'undefined' && typeof Intl.supportedValuesOf === 'function') {
+    try {
+      codes = Intl.supportedValuesOf('currency');
+    } catch (e) { /* fallback list */ }
+  }
+  if (codes.indexOf('DOP') === -1) codes.push('DOP');
+  codes = Array.from(new Set(codes)).sort();
+
+  var displayNames = null;
+  if (typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function') {
+    try {
+      displayNames = new Intl.DisplayNames(['es'], { type: 'currency' });
+    } catch (e) { displayNames = null; }
+  }
+
+  return codes.map(function (code) {
+    var name = displayNames ? displayNames.of(code) : '';
+    return {
+      code: code,
+      name: name || code,
+      symbol: getCurrencySymbol(code)
+    };
+  });
+}
+
+function populateCurrencySelects() {
+  var options = getCurrencyOptions();
+  var invoiceSelect = $('invoiceCurrency');
+  var settingsSelect = $('settingsCurrency');
+  if (!invoiceSelect || !settingsSelect) return;
+
+  var html = options.map(function (opt) {
+    return '<option value="' + opt.code + '">' +
+      opt.code + ' \u2014 ' + escHtml(opt.name) + ' (' + escHtml(opt.symbol) + ')' +
+      '</option>';
+  }).join('');
+
+  invoiceSelect.innerHTML = html;
+  settingsSelect.innerHTML = html;
+}
+
+function syncCurrencySymbolPreview() {
+  var code = val('settingsCurrency') || 'MXN';
+  setVal('settingsCurrencySymbol', getCurrencySymbol(code));
+}
+
+function currentCurrencyCode() {
+  return val('invoiceCurrency') || getSettings().currency || 'MXN';
+}
+
+function currentCurrencySymbol() {
+  return getCurrencySymbol(currentCurrencyCode()) || '$';
+}
+
 // ── localStorage helpers ──────────────────────────────────────
 function lsGet(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v != null ? v : fallback; }
@@ -69,7 +155,7 @@ function defaultSettings() {
   return {
     ivaPct:          16,
     currency:        'MXN',
-    currencySymbol:  '$',
+    currencySymbol:  getCurrencySymbol('MXN'),
     companyName:     '',
     companyNif:      '',
     companyAddress:  '',
@@ -84,9 +170,10 @@ function getSettings() {
 
 function loadSettingsUI() {
   const s = getSettings();
+  setVal('settingsCurrency',       (s.currency || 'MXN').toUpperCase());
+  if (!$('settingsCurrency').value) setVal('settingsCurrency', 'MXN');
   setVal('settingsIva',            s.ivaPct);
-  setVal('settingsCurrency',       s.currency);
-  setVal('settingsCurrencySymbol', s.currencySymbol);
+  setVal('settingsCurrencySymbol', s.currencySymbol || getCurrencySymbol(s.currency || 'MXN'));
   setVal('settingsCompanyName',    s.companyName);
   setVal('settingsCompanyNif',     s.companyNif);
   setVal('settingsCompanyAddress', s.companyAddress);
@@ -95,10 +182,12 @@ function loadSettingsUI() {
 }
 
 function saveSettingsUI() {
+  var currencyCode = (val('settingsCurrency') || 'MXN').toUpperCase();
+  var symbol = val('settingsCurrencySymbol') || getCurrencySymbol(currencyCode);
   const s = {
     ivaPct:         parseFloat(val('settingsIva'))          || 16,
-    currency:       val('settingsCurrency')                  || 'MXN',
-    currencySymbol: val('settingsCurrencySymbol')            || '$',
+    currency:       currencyCode,
+    currencySymbol: symbol,
     companyName:    val('settingsCompanyName'),
     companyNif:     val('settingsCompanyNif'),
     companyAddress: val('settingsCompanyAddress'),
@@ -106,8 +195,9 @@ function saveSettingsUI() {
     companyPhone:   val('settingsCompanyPhone'),
   };
   lsSet(KEYS.settings, s);
-  recalcTotals(); // symbol may have changed
-  toast('Configuración guardada ✓');
+  setVal('invoiceCurrency', currencyCode);
+  recalcTotals();
+  toast('Configuración guardada correctamente');
 }
 
 function applyDefaultCompany() {
@@ -232,9 +322,8 @@ function calcTotals() {
 
 /** Format a number as currency with thousands separator (plain text — safe for textContent) */
 function fmtCurrency(n) {
-  var s   = getSettings();
   var num = isNaN(n) ? 0 : parseFloat(n);
-  return s.currencySymbol + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return currentCurrencySymbol() + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /**
@@ -242,9 +331,8 @@ function fmtCurrency(n) {
  * Use this version whenever the result will be concatenated into an innerHTML assignment.
  */
 function fmtCurrencyHtml(n) {
-  var s   = getSettings();
   var num = isNaN(n) ? 0 : parseFloat(n);
-  return escHtml(s.currencySymbol) + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return escHtml(currentCurrencySymbol()) + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /** Update the totals display in the form */
@@ -269,7 +357,7 @@ function renderItems() {
   if (state.items.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="7" class="empty-cell">' +
-      'No hay conceptos. Haz clic en <strong>&#xFF0B; Agregar concepto</strong>.' +
+      'No hay conceptos. Haz clic en <strong>Agregar concepto</strong>.' +
       '</td></tr>';
     return;
   }
@@ -399,7 +487,6 @@ function attachErrorClearListeners() {
 
 // ── Collect form data ─────────────────────────────────────────
 function collectFormData() {
-  var settings = getSettings();
   var tots     = calcTotals();
   return {
     issuerName:    val('issuerName'),
@@ -425,7 +512,7 @@ function collectFormData() {
     discAmt:        tots.discAmt,
     taxAmt:         tots.taxAmt,
     total:          tots.total,
-    currencySymbol: settings.currencySymbol,
+    currencySymbol: currentCurrencySymbol(),
   };
 }
 
@@ -645,7 +732,7 @@ function saveInvoice() {
   state.editingId = data.id;
 
   renderHistory();
-  toast('Factura guardada ✓');
+  toast('Factura guardada correctamente');
 }
 
 // ── Load invoice ──────────────────────────────────────────────
@@ -702,7 +789,7 @@ function loadInvoice(id) {
   recalcTotals();
   clearErrors();
   showTab('form');
-  toast('Factura cargada ✓');
+  toast('Factura cargada correctamente');
 }
 
 // ── Delete invoice ────────────────────────────────────────────
@@ -771,7 +858,8 @@ function resetForm() {
   setVal('issueDate',       today());
   setVal('dueDate',         futureDate(30));
   setVal('invoiceNumber',   nextInvoiceNumber());
-  setVal('invoiceCurrency', getSettings().currency);
+  setVal('invoiceCurrency', getSettings().currency || 'MXN');
+  if (!$('invoiceCurrency').value) setVal('invoiceCurrency', 'MXN');
 
   renderItems();
   recalcTotals();
@@ -839,6 +927,10 @@ function wireEvents() {
 
   // Settings
   $('btnSaveSettings').addEventListener('click', saveSettingsUI);
+  $('settingsCurrency').addEventListener('change', syncCurrencySymbolPreview);
+
+  // Currency
+  $('invoiceCurrency').addEventListener('change', recalcTotals);
 
   // Logo
   $('logoInput').addEventListener(    'change', handleLogoUpload);
@@ -850,6 +942,7 @@ function wireEvents() {
 
 // ── Init ──────────────────────────────────────────────────────
 function init() {
+  populateCurrencySelects();
   wireEvents();
   setupKeyboardShortcuts();
   resetForm();

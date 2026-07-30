@@ -48,7 +48,10 @@ body {
   font-size: 15px;
   line-height: 1.65;
   color: var(--gray-700);
-  background: var(--gray-100);
+  background:
+    radial-gradient(circle at 0 0, #e7efff 0%, rgba(231,239,255,0) 35%),
+    radial-gradient(circle at 100% 0, #e8f8f1 0%, rgba(232,248,241,0) 30%),
+    var(--gray-100);
   min-height: 100vh;
 }
 
@@ -133,12 +136,29 @@ body {
 }
 
 .tab-icon { font-size: .9rem; }
+.tab-icon svg,
+.btn-icon-inline svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.btn-icon-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ── Main Content ──────────────────────────────────────────── */
 .app-main {
-  max-width: 1200px;
+  max-width: 1260px;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 3rem;
+  padding: 1.75rem 1.25rem 3rem;
 }
 
 /* ── Tab Panels ────────────────────────────────────────────── */
@@ -159,7 +179,7 @@ body {
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .card-head {
@@ -413,7 +433,7 @@ input.input-error, select.input-error, textarea.input-error {
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: .8rem;
+  font-size: .95rem;
   transition: background var(--transition);
 }
 .btn-icon.btn-danger-icon {
@@ -882,6 +902,9 @@ section.card { margin-bottom: 1.25rem; }
 }
 
 @media (max-width: 700px) {
+  body {
+    background: #e9eef6;
+  }
   .two-col-grid {
     grid-template-columns: 1fr;
   }
@@ -889,23 +912,48 @@ section.card { margin-bottom: 1.25rem; }
     grid-template-columns: 1fr 1fr;
   }
   .header-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: .5rem 1rem;
-    gap: .5rem;
+    padding: .6rem 1rem;
+    min-height: 62px;
   }
   .tab-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     justify-content: stretch;
+    gap: .25rem;
+    padding: .45rem .55rem calc(.5rem + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,.96);
+    border-top: 1px solid var(--gray-200);
+    box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(8px);
+    z-index: 140;
   }
   .tab-btn {
     flex: 1;
     justify-content: center;
-    font-size: .75rem;
-    padding: .4rem .5rem;
+    flex-direction: column;
+    gap: .2rem;
+    font-size: .68rem;
+    padding: .45rem .2rem;
+    border-radius: 10px;
   }
-  .tab-label { display: none; }
-  .tab-icon { font-size: 1.1rem; }
+  .tab-label {
+    display: block;
+    line-height: 1;
+  }
+  .tab-icon svg {
+    width: 1.12rem;
+    height: 1.12rem;
+  }
+  .app-main {
+    background: var(--white);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 0 0 1px rgba(148, 163, 184, .2);
+    padding: 1rem .9rem 5.9rem;
+    min-height: calc(100vh - 68px);
+  }
   .invoice-doc {
     padding: 1.5rem 1.25rem;
   }
@@ -919,7 +967,7 @@ section.card { margin-bottom: 1.25rem; }
 }
 
 @media (max-width: 480px) {
-  .app-main { padding: 1rem .75rem 2.5rem; }
+  .app-main { padding: 1rem .75rem 6rem; }
   .card { padding: 1.1rem 1rem; }
   .form-row-2 { grid-template-columns: 1fr; }
   .four-col-grid { grid-template-columns: 1fr; }

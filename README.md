@@ -52,28 +52,28 @@ python3 -m http.server 8080
 ## Cómo usar el generador de facturas
 
 ### 1. Configuración inicial (opcional)
-Ve a la pestaña **⚙️ Config.** y define:
+Ve a la pestaña **Config.** y define:
 - IVA predeterminado (%)
 - Moneda y símbolo
 - Datos de tu empresa (para rellenar automáticamente el formulario)
 
 ### 2. Crear una factura
-1. Ve a la pestaña **📋 Formulario**.
+1. Ve a la pestaña **Formulario**.
 2. Rellena los **Datos del Emisor** (tu empresa). Usa **"Usar predeterminados"** si configuraste los datos de empresa.
 3. Rellena los **Datos del Cliente**.
 4. Completa los **Datos de la Factura** (número, fechas, moneda).
 5. Agrega conceptos con **＋ Agregar concepto** — los totales se actualizan en tiempo real.
-6. Haz clic en **💾 Guardar** para almacenar la factura en el navegador.
+6. Haz clic en **Guardar** para almacenar la factura en el navegador.
 
 ### 3. Vista previa e impresión / PDF
-1. Haz clic en **👁 Vista Previa** para ver el diseño final de la factura.
-2. Haz clic en **🖨 Imprimir / PDF** para abrir el diálogo de impresión del navegador.
+1. Haz clic en **Vista Previa** para ver el diseño final de la factura.
+2. Haz clic en **Imprimir / PDF** para abrir el diálogo de impresión del navegador.
 3. En el diálogo de impresión, selecciona **"Guardar como PDF"** para exportar.
 
 > **Consejo:** En Chrome/Edge elige *"Más configuraciones → Tamaño: A4, Márgenes: Predeterminado"* para mejores resultados.
 
 ### 4. Historial
-La pestaña **📂 Historial** muestra todas las facturas guardadas. Puedes:
+La pestaña **Historial** muestra todas las facturas guardadas. Puedes:
 - **Cargar** — abre la factura en el formulario para editarla.
 - **Eliminar** — la elimina del historial (no se puede deshacer).
 
