@@ -429,225 +429,198 @@ function collectFormData() {
   };
 }
 
-// ── Preview generation ────────────────────────────────────────
-function generatePreview() {
-  if (!validateForm()) { showTab('form'); return; }
+// ── Build invoice DOM (shared by preview + print) ───────────
+/**
+ * Creates the invoice DOM element from invoice data.
+ * All user-supplied data is set via textContent — never via innerHTML.
+ * Only hardcoded structural strings use innerHTML (none here).
+ */
+function buildInvoiceDOM(d) {
+  var sym = d.currencySymbol; // used only in textContent assignments — safe
 
-  var d   = collectFormData();
-  var sym = escHtml(d.currencySymbol);
+  /** Create element, optionally set className and textContent */
+  function mk(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls)          e.className   = cls;
+    if (text != null) e.textContent = String(text);
+    return e;
+  }
 
-  function f(n) {
+  /** Format a number as a currency string (textContent use — no HTML needed) */
+  function fmtAmt(n) {
     var num = isNaN(n) ? 0 : parseFloat(n);
     return sym + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
-  var logoHtml = d.logoUrl
-    ? '<img src="' + escHtml(d.logoUrl) + '" alt="Logo de la empresa" class="inv-logo">'
-    : '';
+  /** Two-cell metadata table row */
+  function metaRow(label, value, bold) {
+    var tr  = document.createElement('tr');
+    var td1 = mk('td', null, label);
+    var td2 = document.createElement('td');
+    if (bold) { td2.appendChild(mk('strong', null, value)); }
+    else      { td2.textContent = value; }
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    return tr;
+  }
 
-  var rowsHtml = d.items.map(function (item, i) {
-    var discDisplay = parseFloat(item.disc) > 0
-      ? parseFloat(item.disc).toFixed(1) + '%'
-      : '&mdash;';
-    return (
-      '<tr>' +
-        '<td class="item-num">' + (i + 1) + '</td>' +
-        '<td>' + escHtml(item.desc) + '</td>' +
-        '<td class="text-right">' + parseFloat(item.qty).toFixed(2) + '</td>' +
-        '<td class="text-right">' + f(item.price) + '</td>' +
-        '<td class="text-right">' + parseFloat(item.tax).toFixed(1) + '%</td>' +
-        '<td class="text-right">' + discDisplay + '</td>' +
-        '<td class="text-right">' + f(item.total) + '</td>' +
-      '</tr>'
-    );
-  }).join('');
+  // ── Root ──────────────────────────────────────────────────
+  var root = mk('div', 'invoice-doc');
+  root.id  = 'invoiceDoc';
 
-  var discRow = d.discAmt > 0
-    ? '<tr><td>Descuentos</td><td class="text-right text-danger">&minus;' + f(d.discAmt) + '</td></tr>'
-    : '';
+  // ── Top: Issuer + Invoice meta ────────────────────────────
+  var top = mk('div', 'inv-top');
 
-  var notesHtml = d.notes
-    ? '<div class="inv-notes"><h4>Notas / Condiciones de pago</h4><p>' +
-      escHtml(d.notes).replace(/\n/g, '<br>') + '</p></div>'
-    : '';
+  // Issuer column
+  var issuerDiv = mk('div', 'inv-from');
+  if (d.logoUrl) {
+    var img = mk('img', 'inv-logo');
+    img.src = d.logoUrl; // data: URL from FileReader — safe for img.src
+    img.alt = 'Logo de la empresa';
+    issuerDiv.appendChild(img);
+  }
+  issuerDiv.appendChild(mk('h2', 'inv-company', d.issuerName));
+  if (d.issuerNif) issuerDiv.appendChild(mk('p', null, 'NIF/RFC: ' + d.issuerNif));
+  if (d.issuerAddress) {
+    var addrP = mk('p', 'inv-addr', d.issuerAddress);
+    addrP.style.whiteSpace = 'pre-line';
+    issuerDiv.appendChild(addrP);
+  }
+  if (d.issuerEmail) issuerDiv.appendChild(mk('p', null, d.issuerEmail));
+  if (d.issuerPhone) issuerDiv.appendChild(mk('p', null, 'Tel: ' + d.issuerPhone));
 
-  var dueDateRow = d.dueDate
-    ? '<tr><td>Vencimiento:</td><td>' + fmtDate(d.dueDate) + '</td></tr>'
-    : '';
+  // Meta column (invoice number, dates, currency)
+  var metaDiv = mk('div', 'inv-meta');
+  metaDiv.appendChild(mk('p', 'inv-title-label', 'FACTURA'));
+  var metaTbl = mk('table', 'inv-meta-tbl');
+  var metaTb  = document.createElement('tbody');
+  metaTb.appendChild(metaRow('N.\u00ba:', d.invoiceNumber, true));
+  metaTb.appendChild(metaRow('Emisi\u00f3n:', fmtDate(d.issueDate), false));
+  if (d.dueDate) metaTb.appendChild(metaRow('Vencimiento:', fmtDate(d.dueDate), false));
+  metaTb.appendChild(metaRow('Moneda:', d.currency, false));
+  metaTbl.appendChild(metaTb);
+  metaDiv.appendChild(metaTbl);
 
-  var html = (
-    '<div class="invoice-doc" id="invoiceDoc">' +
+  top.appendChild(issuerDiv);
+  top.appendChild(metaDiv);
+  root.appendChild(top);
 
-      '<div class="inv-top">' +
-        '<div class="inv-from">' +
-          logoHtml +
-          '<h2 class="inv-company">' + escHtml(d.issuerName) + '</h2>' +
-          (d.issuerNif     ? '<p>NIF/RFC: ' + escHtml(d.issuerNif) + '</p>' : '') +
-          (d.issuerAddress ? '<p class="inv-addr">' + escHtml(d.issuerAddress).replace(/\n/g, '<br>') + '</p>' : '') +
-          (d.issuerEmail   ? '<p>' + escHtml(d.issuerEmail) + '</p>' : '') +
-          (d.issuerPhone   ? '<p>Tel: ' + escHtml(d.issuerPhone) + '</p>' : '') +
-        '</div>' +
-        '<div class="inv-meta">' +
-          '<p class="inv-title-label">FACTURA</p>' +
-          '<table class="inv-meta-tbl">' +
-            '<tr><td>N.&ordm;:</td><td><strong>' + escHtml(d.invoiceNumber) + '</strong></td></tr>' +
-            '<tr><td>Emisi&oacute;n:</td><td>' + fmtDate(d.issueDate) + '</td></tr>' +
-            dueDateRow +
-            '<tr><td>Moneda:</td><td>' + escHtml(d.currency) + '</td></tr>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
+  // ── Client section ────────────────────────────────────────
+  var clientDiv = mk('div', 'inv-client');
+  clientDiv.appendChild(mk('p', 'inv-client-label', 'Facturar a:'));
+  clientDiv.appendChild(mk('p', 'inv-client-name', d.clientName));
+  if (d.clientNif) clientDiv.appendChild(mk('p', null, 'NIF/RFC: ' + d.clientNif));
+  if (d.clientAddress) {
+    var cAddrP = mk('p', null, d.clientAddress);
+    cAddrP.style.whiteSpace = 'pre-line';
+    clientDiv.appendChild(cAddrP);
+  }
+  if (d.clientEmail) clientDiv.appendChild(mk('p', null, d.clientEmail));
+  if (d.clientPhone) clientDiv.appendChild(mk('p', null, 'Tel: ' + d.clientPhone));
+  root.appendChild(clientDiv);
 
-      '<div class="inv-client">' +
-        '<p class="inv-client-label">Facturar a:</p>' +
-        '<p class="inv-client-name">' + escHtml(d.clientName) + '</p>' +
-        (d.clientNif     ? '<p>NIF/RFC: ' + escHtml(d.clientNif) + '</p>' : '') +
-        (d.clientAddress ? '<p>' + escHtml(d.clientAddress).replace(/\n/g, '<br>') + '</p>' : '') +
-        (d.clientEmail   ? '<p>' + escHtml(d.clientEmail) + '</p>' : '') +
-        (d.clientPhone   ? '<p>Tel: ' + escHtml(d.clientPhone) + '</p>' : '') +
-      '</div>' +
+  // ── Items table ───────────────────────────────────────────
+  var itemsTbl = mk('table', 'inv-items');
+  var thead    = document.createElement('thead');
+  var hRow     = document.createElement('tr');
+  // Static column headers
+  [
+    { t: '#',                 c: 'item-num'   },
+    { t: 'Descripci\u00f3n', c: null          },
+    { t: 'Cant.',             c: 'text-right' },
+    { t: 'Precio unit.',      c: 'text-right' },
+    { t: 'IVA',               c: 'text-right' },
+    { t: 'Desc.',             c: 'text-right' },
+    { t: 'Subtotal',          c: 'text-right' },
+  ].forEach(function (h) { hRow.appendChild(mk('th', h.c, h.t)); });
+  thead.appendChild(hRow);
+  itemsTbl.appendChild(thead);
 
-      '<table class="inv-items">' +
-        '<thead>' +
-          '<tr>' +
-            '<th class="item-num">#</th>' +
-            '<th>Descripci&oacute;n</th>' +
-            '<th class="text-right">Cant.</th>' +
-            '<th class="text-right">Precio unit.</th>' +
-            '<th class="text-right">IVA</th>' +
-            '<th class="text-right">Desc.</th>' +
-            '<th class="text-right">Subtotal</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody>' + rowsHtml + '</tbody>' +
-      '</table>' +
+  // User data rows — all via textContent
+  var tbody = document.createElement('tbody');
+  d.items.forEach(function (item, i) {
+    var tr = document.createElement('tr');
+    function tdC(text, cls) { return mk('td', cls || null, text); }
+    tr.appendChild(tdC(String(i + 1), 'item-num'));
+    tr.appendChild(tdC(item.desc));
+    tr.appendChild(tdC(parseFloat(item.qty).toFixed(2),    'text-right'));
+    tr.appendChild(tdC(fmtAmt(item.price),                 'text-right'));
+    tr.appendChild(tdC(parseFloat(item.tax).toFixed(1) + '%', 'text-right'));
+    var disc = parseFloat(item.disc);
+    tr.appendChild(tdC(disc > 0 ? disc.toFixed(1) + '%' : '\u2014', 'text-right'));
+    tr.appendChild(tdC(fmtAmt(item.total),                 'text-right'));
+    tbody.appendChild(tr);
+  });
+  itemsTbl.appendChild(tbody);
+  root.appendChild(itemsTbl);
 
-      '<div class="inv-totals-wrap">' +
-        '<table class="inv-totals">' +
-          '<tr><td>Subtotal:</td><td class="text-right">' + f(d.subtotal) + '</td></tr>' +
-          discRow +
-          '<tr><td>Impuestos:</td><td class="text-right">' + f(d.taxAmt) + '</td></tr>' +
-          '<tr class="inv-total-final">' +
-            '<td><strong>TOTAL:</strong></td>' +
-            '<td class="text-right"><strong>' + f(d.total) + '</strong></td>' +
-          '</tr>' +
-        '</table>' +
-      '</div>' +
+  // ── Totals ────────────────────────────────────────────────
+  var totalsWrap = mk('div', 'inv-totals-wrap');
+  var totalsTbl  = mk('table', 'inv-totals');
+  var totalsTb   = document.createElement('tbody');
 
-      notesHtml +
-    '</div>'
-  );
+  function totRow(label, amtText, trCls, dangerAmt) {
+    var tr  = document.createElement('tr');
+    if (trCls) tr.className = trCls;
+    tr.appendChild(mk('td', null, label));
+    tr.appendChild(mk('td', 'text-right' + (dangerAmt ? ' text-danger' : ''), amtText));
+    return tr;
+  }
 
-  $('previewContent').innerHTML = html;
+  totalsTb.appendChild(totRow('Subtotal:', fmtAmt(d.subtotal)));
+  if (d.discAmt > 0) {
+    totalsTb.appendChild(totRow('Descuentos:', '\u2212' + fmtAmt(d.discAmt), null, true));
+  }
+  totalsTb.appendChild(totRow('Impuestos:', fmtAmt(d.taxAmt)));
+
+  // Final total row with bold labels
+  var finalTr = document.createElement('tr');
+  finalTr.className = 'inv-total-final';
+  var ftd1 = document.createElement('td');
+  ftd1.appendChild(mk('strong', null, 'TOTAL:'));
+  var ftd2 = mk('td', 'text-right');
+  ftd2.appendChild(mk('strong', null, fmtAmt(d.total)));
+  finalTr.appendChild(ftd1);
+  finalTr.appendChild(ftd2);
+  totalsTb.appendChild(finalTr);
+
+  totalsTbl.appendChild(totalsTb);
+  totalsWrap.appendChild(totalsTbl);
+  root.appendChild(totalsWrap);
+
+  // ── Notes ─────────────────────────────────────────────────
+  if (d.notes) {
+    var notesDiv  = mk('div', 'inv-notes');
+    notesDiv.appendChild(mk('h4', null, 'Notas / Condiciones de pago'));
+    var notesPara = mk('p', null, d.notes);
+    notesPara.style.whiteSpace = 'pre-line';
+    notesDiv.appendChild(notesPara);
+    root.appendChild(notesDiv);
+  }
+
+  return root;
+}
+
+// ── Preview generation ────────────────────────────────────────
+function generatePreview() {
+  if (!validateForm()) { showTab('form'); return; }
+  var host = $('previewContent');
+  host.textContent = '';
+  host.appendChild(buildInvoiceDOM(collectFormData()));
   showTab('preview');
 }
 
 // ── Print ─────────────────────────────────────────────────────
 function printInvoice() {
   if (!validateForm()) { showTab('form'); return; }
-  // Make sure preview is up-to-date before printing
-  var d   = collectFormData();
-  var sym = escHtml(d.currencySymbol);
-
-  function f(n) {
-    var num = isNaN(n) ? 0 : parseFloat(n);
-    return sym + num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  }
-
-  var logoHtml = d.logoUrl
-    ? '<img src="' + escHtml(d.logoUrl) + '" alt="Logo de la empresa" class="inv-logo">'
-    : '';
-
-  var rowsHtml = d.items.map(function (item, i) {
-    var discDisplay = parseFloat(item.disc) > 0
-      ? parseFloat(item.disc).toFixed(1) + '%'
-      : '&mdash;';
-    return (
-      '<tr>' +
-        '<td class="item-num">' + (i + 1) + '</td>' +
-        '<td>' + escHtml(item.desc) + '</td>' +
-        '<td class="text-right">' + parseFloat(item.qty).toFixed(2) + '</td>' +
-        '<td class="text-right">' + f(item.price) + '</td>' +
-        '<td class="text-right">' + parseFloat(item.tax).toFixed(1) + '%</td>' +
-        '<td class="text-right">' + discDisplay + '</td>' +
-        '<td class="text-right">' + f(item.total) + '</td>' +
-      '</tr>'
-    );
-  }).join('');
-
-  var discRow = d.discAmt > 0
-    ? '<tr><td>Descuentos</td><td class="text-right text-danger">&minus;' + f(d.discAmt) + '</td></tr>'
-    : '';
-
-  var notesHtml = d.notes
-    ? '<div class="inv-notes"><h4>Notas / Condiciones de pago</h4><p>' +
-      escHtml(d.notes).replace(/\n/g, '<br>') + '</p></div>'
-    : '';
-
-  var dueDateRow = d.dueDate
-    ? '<tr><td>Vencimiento:</td><td>' + fmtDate(d.dueDate) + '</td></tr>'
-    : '';
-
-  var html = (
-    '<div class="invoice-doc" id="invoiceDoc">' +
-      '<div class="inv-top">' +
-        '<div class="inv-from">' +
-          logoHtml +
-          '<h2 class="inv-company">' + escHtml(d.issuerName) + '</h2>' +
-          (d.issuerNif     ? '<p>NIF/RFC: ' + escHtml(d.issuerNif) + '</p>' : '') +
-          (d.issuerAddress ? '<p>' + escHtml(d.issuerAddress).replace(/\n/g, '<br>') + '</p>' : '') +
-          (d.issuerEmail   ? '<p>' + escHtml(d.issuerEmail) + '</p>' : '') +
-          (d.issuerPhone   ? '<p>Tel: ' + escHtml(d.issuerPhone) + '</p>' : '') +
-        '</div>' +
-        '<div class="inv-meta">' +
-          '<p class="inv-title-label">FACTURA</p>' +
-          '<table class="inv-meta-tbl">' +
-            '<tr><td>N.&ordm;:</td><td><strong>' + escHtml(d.invoiceNumber) + '</strong></td></tr>' +
-            '<tr><td>Emisi&oacute;n:</td><td>' + fmtDate(d.issueDate) + '</td></tr>' +
-            dueDateRow +
-            '<tr><td>Moneda:</td><td>' + escHtml(d.currency) + '</td></tr>' +
-          '</table>' +
-        '</div>' +
-      '</div>' +
-      '<div class="inv-client">' +
-        '<p class="inv-client-label">Facturar a:</p>' +
-        '<p class="inv-client-name">' + escHtml(d.clientName) + '</p>' +
-        (d.clientNif     ? '<p>NIF/RFC: ' + escHtml(d.clientNif) + '</p>' : '') +
-        (d.clientAddress ? '<p>' + escHtml(d.clientAddress).replace(/\n/g, '<br>') + '</p>' : '') +
-        (d.clientEmail   ? '<p>' + escHtml(d.clientEmail) + '</p>' : '') +
-        (d.clientPhone   ? '<p>Tel: ' + escHtml(d.clientPhone) + '</p>' : '') +
-      '</div>' +
-      '<table class="inv-items">' +
-        '<thead><tr>' +
-          '<th class="item-num">#</th>' +
-          '<th>Descripci&oacute;n</th>' +
-          '<th class="text-right">Cant.</th>' +
-          '<th class="text-right">Precio unit.</th>' +
-          '<th class="text-right">IVA</th>' +
-          '<th class="text-right">Desc.</th>' +
-          '<th class="text-right">Subtotal</th>' +
-        '</tr></thead>' +
-        '<tbody>' + rowsHtml + '</tbody>' +
-      '</table>' +
-      '<div class="inv-totals-wrap">' +
-        '<table class="inv-totals">' +
-          '<tr><td>Subtotal:</td><td class="text-right">' + f(d.subtotal) + '</td></tr>' +
-          discRow +
-          '<tr><td>Impuestos:</td><td class="text-right">' + f(d.taxAmt) + '</td></tr>' +
-          '<tr class="inv-total-final"><td><strong>TOTAL:</strong></td><td class="text-right"><strong>' + f(d.total) + '</strong></td></tr>' +
-        '</table>' +
-      '</div>' +
-      notesHtml +
-    '</div>'
-  );
-
-  $('previewContent').innerHTML = html;
-  // Switch to preview tab so @media print shows it
+  var host = $('previewContent');
+  host.textContent = '';
+  host.appendChild(buildInvoiceDOM(collectFormData()));
+  // Activate preview tab so @media print shows the invoice
   document.querySelectorAll('.tab-content').forEach(function (el) {
     el.classList.remove('active');
   });
   $('tab-preview').classList.add('active');
-
   setTimeout(function () { window.print(); }, 150);
 }
 
